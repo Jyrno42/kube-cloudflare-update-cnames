@@ -1,0 +1,56 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: services-list
+rules:
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["list", "watch"]
+- apiGroups: ["traefik.io"]
+  resources: ["ingressroutes"]
+  verbs: ["list", "watch"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: services-list
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: services-list
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-cloudflare-update-cnames
+  labels:
+    app: kube-cloudflare-update-cnames
+    version: "1112"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kube-cloudflare-update-cnames
+  template:
+    metadata:
+      labels:
+        app: kube-cloudflare-update-cnames
+    spec:
+      containers:
+        - name: kube-cloudflare-update-cnames-pod
+          image: jyrno42/kube-cloudflare-update-cnames:latest
+          imagePullPolicy: Always
+          env:
+            - name: CLOUDFLARE_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: apiKey
+                  name: cloudflare-api-credentials
