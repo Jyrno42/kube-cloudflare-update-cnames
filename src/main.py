@@ -120,11 +120,20 @@ def main():
     config.load_incluster_config()
     api = client.CoreV1Api()
 
-    # Print services list
-    services = api.list_namespaced_service(namespace=ns, watch=False)
-    traefik_endpoint = get_traefik_endpoint(services.items)
+    traefik_endpoint = ""
 
-    print(f"Traefik endpoint: {traefik_endpoint}")
+    def update_traefik_endpoint():
+        nonlocal traefik_endpoint
+
+        services = api.list_namespaced_service(namespace=ns, watch=False)
+        new_endpoint = get_traefik_endpoint(services.items)
+
+        if traefik_endpoint != new_endpoint:
+            traefik_endpoint = new_endpoint
+
+            print(f"Traefik endpoint: {traefik_endpoint}")
+
+    update_traefik_endpoint()
 
     c_api = client.CustomObjectsApi()
 
@@ -137,11 +146,15 @@ def main():
                     ingress_hosts = get_ingress_hostnames(res["object"])
                     
                     if ingress_hosts:
+                        update_traefik_endpoint()
+
                         print(f"Found new/updated ingress: {ingress_hosts}")
 
                         setup_cname_for_ingress(ingress_hosts, traefik_endpoint)
                 
                 elif res.get("type") == "DELETED":
+                    update_traefik_endpoint()
+
                     print(f"Deleted ingress: {res['object']['metadata']['name']}")
 
                     ingress_hosts = get_ingress_hostnames(res["object"])
