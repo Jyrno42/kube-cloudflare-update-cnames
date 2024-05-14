@@ -103,11 +103,11 @@ def setup_cname_for_ingress(ingress_hosts, traefik_endpoint):
                 "name": host,
                 "type": "CNAME",
                 "content": traefik_endpoint,
-                "proxied": False
-
+                "proxied": False,
+                "ttl": 5 * 60, # 5 minutes
             }
 
-            cf.zones.dns_records.post(zone_id, data=new_record, ttl=5 * 60) # 5 minutes
+            cf.zones.dns_records.post(zone_id, data=new_record) # 5 minutes
 
 
 def main():
